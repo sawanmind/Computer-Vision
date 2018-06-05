@@ -99,6 +99,7 @@ class ViewController: UIViewController , G8TesseractDelegate {
             return
         }
         textObservations = textResults as! [VNTextObservation]
+        print(textResults)
         DispatchQueue.main.async {
             
             guard let sublayers = self.view.layer.sublayers else {
@@ -149,6 +150,7 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
             imageRequestOptions[.cameraIntrinsics] = cameraData
         }
         let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: CGImagePropertyOrientation(rawValue: 6)!, options: imageRequestOptions)
+     
         do {
             try imageRequestHandler.perform([textDetectionRequest!])
         }
@@ -167,11 +169,11 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     func handleTextRecognition(pixelBuffer:CVPixelBuffer) {
         if let tesseract = G8Tesseract(language: "eng") {
             tesseract.delegate = self
-            self.processRecognitionInRealTime(pixelBuffer: pixelBuffer, tesseract: tesseract)
+           self.processTextDetection(pixelBuffer: pixelBuffer, tesseract: tesseract)
+            
           //  let _ = self.processRecognitionFromImage(image: UIImage(named: "textImg")!, tesseract: tesseract)
         }
     }
-    
     
     func processRecognitionFromImage(image:UIImage, tesseract:G8Tesseract) -> String?{
         tesseract.image = image.g8_blackAndWhite()
@@ -181,12 +183,12 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         return recognitisedText ?? nil
     }
     
-    func processRecognitionInRealTime(pixelBuffer:CVPixelBuffer, tesseract:G8Tesseract) {
+    func processTextDetection(pixelBuffer:CVPixelBuffer, tesseract:G8Tesseract) {
         var ciImage = CIImage(cvPixelBuffer: pixelBuffer)
         let transform = ciImage.orientationTransform(for: CGImagePropertyOrientation(rawValue: 6)!)
         ciImage = ciImage.transformed(by: transform)
         let size = ciImage.extent.size
-        var recognizedTextPositionTuples = [(rect: CGRect, text: String)]()
+      
         for textObservation in textObservations {
             guard let rects = textObservation.characterBoxes else {
                 continue
@@ -208,20 +210,28 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
                 continue
             }
             let uiImage = UIImage(cgImage: cgImage)
-            tesseract.image = uiImage
+            
+            self.processRecognitionInRealTime(pixelBuffer: pixelBuffer, tesseract: tesseract, image: uiImage, xMin:xMin,xMax:xMax,yMin:yMin,yMax:yMax)
+
+        }
+       
+    }
+    
+    func processRecognitionInRealTime(pixelBuffer:CVPixelBuffer, tesseract:G8Tesseract,image:UIImage, xMin:CGFloat,xMax:CGFloat,yMin:CGFloat,yMax:CGFloat ) {
+        
+            var recognizedTextPositionTuples = [(rect: CGRect, text: String)]()
+            tesseract.image = image
             tesseract.recognize()
-            guard var text = tesseract.recognizedText else {
-                continue
-            }
-            text = text.trimmingCharacters(in: CharacterSet.newlines)
-            if !text.isEmpty {
+            var text = tesseract.recognizedText
+             text = text?.trimmingCharacters(in: CharacterSet.newlines)
+        if !(text?.isEmpty)! {
                 let x = xMin
                 let y = 1 - yMax
                 let width = xMax - xMin
                 let height = yMax - yMin
-                recognizedTextPositionTuples.append((rect: CGRect(x: x, y: y, width: width, height: height), text: text))
+                recognizedTextPositionTuples.append((rect: CGRect(x: x, y: y, width: width, height: height), text: text!))
             }
-        }
+        
         textObservations.removeAll()
         DispatchQueue.main.async {
             let viewWidth = self.view.frame.size.width
@@ -259,7 +269,7 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         
     }
     
-    
+
 }
 
 
