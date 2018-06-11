@@ -18,6 +18,7 @@ class CameraPreview: UIView {
     var session: AVCaptureSession? {
         get {
             videoPreviewLayer.connection?.videoOrientation = .landscapeRight
+           
             return videoPreviewLayer.session
         }
         set {

@@ -17,13 +17,14 @@ class ViewController: UIViewController , G8TesseractDelegate {
     private let session = AVCaptureSession()
     private var textObservations = [VNTextObservation]()
     private var cameraView = CameraPreview()
+    private var cameracontroller = CameraController()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         self.view.addSubview(cameraView)
         cameraView.frame = self.view.bounds
-        
+
         if isAuthorized() {
             configureTextDetection()
             configureCamera()
@@ -158,22 +159,15 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
             print("Error occured \(error)")
         }
       
-        self.handleTextRecognition(pixelBuffer: pixelBuffer)
-        
-    }
-    
-    func progressImageRecognition(for tesseract: G8Tesseract!) {
-        print("Recognition Progress \(tesseract.progress) %")
-    }
-    
-    func handleTextRecognition(pixelBuffer:CVPixelBuffer) {
         if let tesseract = G8Tesseract(language: "eng") {
             tesseract.delegate = self
-           self.processTextDetection(pixelBuffer: pixelBuffer, tesseract: tesseract)
+            self.processTextDetection(pixelBuffer: pixelBuffer, tesseract: tesseract)
             
-          //  let _ = self.processRecognitionFromImage(image: UIImage(named: "textImg")!, tesseract: tesseract)
+            //  let _ = self.processRecognitionFromImage(image: UIImage(named: "textImg")!, tesseract: tesseract)
         }
+        
     }
+
     
     func processRecognitionFromImage(image:UIImage, tesseract:G8Tesseract) -> String?{
         tesseract.image = image.g8_blackAndWhite()
@@ -248,7 +242,6 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
             for tuple in recognizedTextPositionTuples {
                 let textLayer = CATextLayer()
                 textLayer.backgroundColor = UIColor.clear.cgColor
-                //   textLayer.font = self.font
                 var rect = tuple.rect
                 
                 rect.origin.x *= viewWidth
